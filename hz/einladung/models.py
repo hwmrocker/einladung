@@ -1,23 +1,48 @@
 #encoding: UTF-8
+from django import forms
 from django.db import models
+from django.contrib import admin
 from django.contrib.auth.models import User
+import random
+import string
 
-class PollManager(models.Manager):
+SECERETS = string.digits + string.lowercase
+
+class Event(models.Model):
+    name = models.CharField(max_length=60)
+    ort = models.TextField(null=True, blank=True)
+    datum = models.DateTimeField()
+    _html_class = models.CharField(max_length=30, null=True, blank=True)
+    # http://stackoverflow.com/questions/2854350/django-admin-many-to-many-listbox-doesnt-show-up-with-a-through-parameter
+    personen = models.ManyToManyField('Person', through='Einladung', blank=True)
+
+    def __unicode__(self):
+        return self.name
+
+class Einladung(models.Model):
+    person = models.ForeignKey('Person') 
+    event = models.ForeignKey('Event')
+    ZUSAGE = (
+        ('-', 'Unbekannt'),
+        ('Z', 'Zusage'),
+        ('A', 'Absage'),
+    )    
+    zusage = models.CharField(max_length=1, choices=ZUSAGE, default='-')
+    def __unicode__(self):
+        return "%s - %s" % (self.event, self.person)
+
+class PersonenManager(models.Manager):
     use_for_related_fields = True
-    def zusageEssen(self):
-        return self.get_query_set().filter(EssenEinladung=True).filter(EssenZusage="Z")
-    def zusageKirche(self):
-        return self.get_query_set().filter(KircheEinladung=True).filter(KircheZusage="Z")
-    def zusageFeier(self):
-        return self.get_query_set().filter(FeierEinladung=True).filter(FeierZusage="Z")
+
     def bietenSchlafplaetze(self):
         return self.get_query_set().filter()
         
 class Person(models.Model):
     user = models.OneToOneField(User)
-    objects = PollManager()
-    #name = models.CharField()
-    #email = models.EmailField()
+    objects = PersonenManager()
+    # TODO: if name or email is accessed or edited user.name or user.email is used instead
+    name = models.CharField(max_length=60, null=True, blank=True)
+    email = models.EmailField()
     SICHTBAR = (
         ('B', 'Brautpaar, evtl Helfer'),
         ('S', 'Schlafplatzsuchende'),
@@ -33,25 +58,6 @@ class Person(models.Model):
     anschrift = models.TextField(max_length=100, null=True, blank=True)
     anschrift_sichtbar = models.CharField(max_length=1, choices=SICHTBAR, default='B', null=True, blank=True)
 
-    KircheEinladung = models.BooleanField()
-    EssenEinladung = models.BooleanField()
-    FeierEinladung = models.BooleanField()
-    JunggesellenAbschiedEinladung = models.BooleanField()
-    JungesellinenAbschiedEinladung = models.BooleanField()
-    PolterabendEinladung = models.BooleanField()
-
-    ZUSAGE = (
-        ('-', 'Unbekannt'),
-        ('Z', 'Zusage'),
-        ('A', 'Absage'),
-    )
-    KircheZusage = models.CharField(max_length=1, choices=ZUSAGE, default='-')
-    EssenZusage = models.CharField(max_length=1, choices=ZUSAGE, default='-')
-    FeierZusage = models.CharField(max_length=1, choices=ZUSAGE, default='-')
-    JunggesellenAbschiedZusage = models.CharField(max_length=1, choices=ZUSAGE, default='-')
-    JungesellinenAbschiedZusage = models.CharField(max_length=1, choices=ZUSAGE, default='-')
-    PolterabendZusage = models.CharField(max_length=1, choices=ZUSAGE, default='-')
-
     SUCHE_BETT = (
         ('-', 'Keine Schlafmöglichkeit'),
         ('B', 'Bett'),
@@ -59,17 +65,17 @@ class Person(models.Model):
         ('_', 'Boden'),
     )
     suche = models.CharField(max_length=1, choices=SUCHE_BETT, default='-')
-    #sucheBett = models.BooleanField()
-    #sucheCouch = models.BooleanField()
-    #sucheBoden = models.BooleanField()
 
     bewerbungSchlafplatz = models.ForeignKey('Haus', null=True, blank=True)
     _zusage_fuer_bett = models.ForeignKey('Haus', related_name='zusageBett', null=True, blank=True)
     _zusage_fuer_couch = models.ForeignKey('Haus', related_name='zusageCouch', null=True, blank=True)
     _zusage_fuer_boden = models.ForeignKey('Haus', related_name='zusageBoden', null=True, blank=True)
     
-
+    _secret = models.CharField(max_length=2, unique=True, 
+        default=lambda: "".join([random.choice(SECERETS) for r in range(2)]))
     einladung_gelesen = models.BooleanField()
+    def __unicode__(self):
+        return "%r" % self.user
 
 class Haus(models.Model):
     kontakperson = models.ForeignKey('Person')
