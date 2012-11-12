@@ -10,7 +10,7 @@ class PersonForm(forms.ModelForm):
 class PersonPrivacyForm(forms.ModelForm):
     class Meta:
         model = Person
-        fields = ("handy", "handy_erreichbar", "handy_sichtbar", "festnetz", "festnetz_erreichbar",
+        fields = ("email", "email_sichtbar", "handy", "handy_erreichbar", "handy_sichtbar", "festnetz", "festnetz_erreichbar",
             "festnetz_sichtbar", "anschrift", "anschrift_sichtbar")
 
 class EventAdminForm(forms.ModelForm):

@@ -42,21 +42,22 @@ class Person(models.Model):
     objects = PersonenManager()
     # TODO: if name or email is accessed or edited user.name or user.email is used instead
     name = models.CharField(max_length=60, null=True, blank=True)
-    email = models.EmailField()
     SICHTBAR = (
         ('B', 'Brautpaar, evtl Helfer'),
         ('S', 'Schlafplatzsuchende'),
         ('L', 'Alle mit Login'),
         ('A', 'Alle'),
     )
+    email = models.EmailField()
+    email_sichtbar = models.CharField(max_length=1, choices=SICHTBAR, default='B')
     handy = models.CharField(max_length=40, null=True, blank=True)
+    handy_sichtbar = models.CharField(max_length=1, choices=SICHTBAR, default='B')
     handy_erreichbar = models.CharField(max_length=100, null=True, blank=True)
-    handy_sichtbar = models.CharField(max_length=1, choices=SICHTBAR, default='B', null=True, blank=True)
     festnetz = models.CharField(max_length=40, null=True, blank=True)
+    festnetz_sichtbar = models.CharField(max_length=1, choices=SICHTBAR, default='B')
     festnetz_erreichbar = models.CharField(max_length=100, null=True, blank=True)
-    festnetz_sichtbar = models.CharField(max_length=1, choices=SICHTBAR, default='B', null=True, blank=True)
     anschrift = models.TextField(max_length=100, null=True, blank=True)
-    anschrift_sichtbar = models.CharField(max_length=1, choices=SICHTBAR, default='B', null=True, blank=True)
+    anschrift_sichtbar = models.CharField(max_length=1, choices=SICHTBAR, default='B')
 
     SUCHE_BETT = (
         ('-', 'Keine Schlafmöglichkeit'),
@@ -74,8 +75,20 @@ class Person(models.Model):
     _secret = models.CharField(max_length=2, unique=True, 
         default=lambda: "".join([random.choice(SECERETS) for r in range(2)]))
     einladung_gelesen = models.BooleanField()
+
     def __unicode__(self):
         return "%r" % self.user
+
+    def toggleEinladung(self, event_id, action):
+        einladung = self.einladung_set.get(event_id=event_id)
+        action = action.upper()
+        assert action in ('Z', 'A')
+        if einladung.zusage == action:
+            einladung.zusage = '-'
+        else:
+            einladung.zusage = action
+        einladung.save()
+
 
 class Haus(models.Model):
     kontakperson = models.ForeignKey('Person')

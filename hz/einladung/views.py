@@ -29,11 +29,24 @@ def goto(request, hash):
 
 def zusage(request, person_secret):
     person = get_object_or_404(Person, _secret=person_secret)
-    form = PersonPrivacyForm(instance=person)
-    return render_to_response("zusage.html", {'person':person, 'form':form}, request=request)
+    if request.method == 'POST':
+        event_id, action = request.POST['ok'].split('_')
+        event_id = int(event_id)
+        person.toggleEinladung(event_id, action)
 
-def zusage2(request, person_secret):
+    einladungen = []
+    for einladung in person.einladung_set.all():
+        einladungen.append((einladung.event, einladung.zusage))
+    return render_to_response("zusage.html", 
+        {'person':person, 'einladungen':person.einladung_set.all()}, request=request)
+
+def privacy(request, person_secret):
     person = get_object_or_404(Person, _secret=person_secret)
-    return render_to_response("zusage_puredjango.html", {'person':person}, request=request, django=True)
-
-privacy = zusage2
+    if request.method == 'POST':
+        form = PersonPrivacyForm(request.POST, instance=person)
+        if form.is_valid():
+            form.save()
+    else:
+        form = PersonPrivacyForm(instance=person)
+    return render_to_response("privacy.html", 
+        {'person':person, 'form':form}, request=request, django=True)
