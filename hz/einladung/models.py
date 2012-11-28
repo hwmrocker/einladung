@@ -74,10 +74,11 @@ class Person(models.Model):
     
     _secret = models.CharField(max_length=2, unique=True, 
         default=lambda: "".join([random.choice(SECERETS) for r in range(2)]))
+    _pack = models.CharField(max_length=60, blank=True, default='')
     einladung_gelesen = models.BooleanField()
 
     def __unicode__(self):
-        return "%r" % self.user
+        return "%s (%d)[%s]" % (self.user.username, self.pk, self._secret)
 
     def toggleEinladung(self, event_id, action):
         einladung = self.einladung_set.get(event_id=event_id)
@@ -89,6 +90,12 @@ class Person(models.Model):
             einladung.zusage = action
         einladung.save()
 
+    def getPack(self):
+        return Person.objects.filter(_pack=self._pack).all()
+
+    def getOthers(self):
+        return Person.objects.filter(_pack=self._pack).exclude(pk=self.pk).all()
+
 
 class Haus(models.Model):
     kontakperson = models.ForeignKey('Person')
@@ -97,5 +104,7 @@ class Haus(models.Model):
     bieteBett = models.SmallIntegerField()
     bieteCouch = models.SmallIntegerField()
     bieteBoden = models.SmallIntegerField()
+
+    #TODO für Event
 
     
